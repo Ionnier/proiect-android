@@ -9,6 +9,15 @@
     <fragment
         android:id="@+id/introFragment"
         android:name="com.ionnier.pdma.ui.fragments.IntroFragment"
-        android:label="fragment_intro"
-        tools:layout="@layout/fragment_intro" />
+        android:label="fragment_intro">
+        <action
+            android:id="@+id/openLogin"
+            app:destination="@id/loginFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.ionnier.pdma.ui.fragments.LoginFragment"
+        android:label="fragment_login"
+        tools:layout="@layout/fragment_login" />
 </navigation>

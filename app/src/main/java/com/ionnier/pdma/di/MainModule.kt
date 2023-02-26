@@ -13,6 +13,7 @@ import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
+import timber.log.Timber
 import javax.inject.Singleton
 
 @Module
@@ -23,17 +24,17 @@ object MainModule {
     @Singleton
     fun provideContext() = MainApplication.appContext
 
-
     @Provides
     @Singleton
     fun provideHttpClient() = HttpClient(CIO) {
-        install(Logging)
-        install(Auth) {
-            bearer {
-                loadTokens {
-                    BearerTokens("abc123", "xyz111")
+        install(Logging) {
+            logger = object: Logger {
+                override fun log(message: String) {
+                    Timber.tag("HTTP")
+                    Timber.w(message)
                 }
             }
+            level = LogLevel.INFO
         }
         install(ContentNegotiation) {
             json()
