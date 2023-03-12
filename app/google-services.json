@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "38612998358",
+    "project_id": "pdma-8bd00",
+    "storage_bucket": "pdma-8bd00.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:38612998358:android:226e6fb5c77e593da01177",
+        "android_client_info": {
+          "package_name": "com.ionnier.pdma"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "38612998358-kobadn59kkpihcj37mhisrb1g75nn7ef.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAb807nAmk2i8hvN5bptee3EzFbWCoUIQo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "38612998358-kobadn59kkpihcj37mhisrb1g75nn7ef.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
