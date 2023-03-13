@@ -18,10 +18,18 @@ import javax.inject.Singleton
 object Settings {
     private lateinit var sharedPreferences: SharedPreferences
     private val LANGUAGE_SP = "language_sp"
+    private val DYNAMIC_COLORS = "dynamic_colors_sp"
 
     fun init(context: Context) {
-        sharedPreferences = context.getSharedPreferences("vpn_settings", Context.MODE_PRIVATE)
+        sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     }
+
+    var dynamic_colors: Boolean
+        get() = sharedPreferences.getBoolean(DYNAMIC_COLORS, true)
+        set(value) {
+            sharedPreferences.edit().putBoolean(DYNAMIC_COLORS, value).apply()
+        }
+
 
 
     fun setPreferedLanguage(language: Languages){
