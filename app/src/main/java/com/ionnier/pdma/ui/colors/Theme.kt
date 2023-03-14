@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.view.ViewCompat
 import com.ionnier.pdma.Settings
+import kotlin.random.Random
 
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFF991F3A),
@@ -31,14 +32,15 @@ private val DarkColorScheme = darkColorScheme(
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = Settings.dynamic_colors,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+        Settings.random_colors -> darkColorScheme(
+            primary = Color(Random.nextLong()),
+            secondary = Color(Random.nextLong()),
+            tertiary = Color(Random.nextLong()),
+            surface = Color(Random.nextLong()),
+        )
         else -> DarkColorScheme
     }
     val view = LocalView.current
@@ -57,7 +59,8 @@ fun MyApplicationTheme(
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.5.sp,
+                color = Color.White
             )
         ),
         content = content

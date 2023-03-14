@@ -17,20 +17,18 @@ import javax.inject.Singleton
 
 object Settings {
     private lateinit var sharedPreferences: SharedPreferences
-    private val LANGUAGE_SP = "language_sp"
-    private val DYNAMIC_COLORS = "dynamic_colors_sp"
+    private const val LANGUAGE_SP = "language_sp"
+    private const val RANDOM_COLORS = "random_colors_sp"
 
     fun init(context: Context) {
         sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     }
 
-    var dynamic_colors: Boolean
-        get() = sharedPreferences.getBoolean(DYNAMIC_COLORS, true)
+    var random_colors: Boolean
+        get() = sharedPreferences.getBoolean(RANDOM_COLORS, false)
         set(value) {
-            sharedPreferences.edit().putBoolean(DYNAMIC_COLORS, value).apply()
+            sharedPreferences.edit().putBoolean(RANDOM_COLORS, value).apply()
         }
-
-
 
     fun setPreferedLanguage(language: Languages){
         sharedPreferences.edit().putString(LANGUAGE_SP, Json.encodeToString(language)).apply()
