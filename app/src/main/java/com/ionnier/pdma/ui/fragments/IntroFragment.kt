@@ -44,7 +44,7 @@ class IntroFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Settings.getPreferedLanguage() != null) {
+        if (Settings.getPreferedLanguage() != null && (findNavController().previousBackStackEntry == null)) {
             if (findNavController().currentDestination?.label == "fragment_intro") {
                 findNavController().navigate(IntroFragmentDirections.openLogin())
             }
@@ -73,7 +73,11 @@ class IntroFragment : Fragment() {
             languageViewModel.getCountry(it)?.let {
                 Settings.setPreferedLanguage(it)
                 if (findNavController().currentDestination?.label == "fragment_intro") {
-                    findNavController().navigate(IntroFragmentDirections.openLogin())
+                    if (findNavController().previousBackStackEntry == null) {
+                        findNavController().navigate(IntroFragmentDirections.openLogin())
+                    } else {
+                        findNavController().navigateUp()
+                    }
                 }
             }
         }

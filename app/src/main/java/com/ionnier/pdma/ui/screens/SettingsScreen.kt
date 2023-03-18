@@ -20,7 +20,8 @@ fun DrawSettingsScreen(
     modifier: Modifier = Modifier,
     recreate: () -> Unit,
     scheduleReminder: () -> Unit,
-    setCalories: () -> Unit
+    setCalories: () -> Unit,
+    changeLanguage: () -> Unit,
 ) {
     MyApplicationTheme {
         Surface {
@@ -72,6 +73,22 @@ fun DrawSettingsScreen(
                         color = Color.White
                     )
                     IconButton(onClick = scheduleReminder) {
+                        Icon(
+                            imageVector = Icons.Rounded.ArrowForward,
+                            contentDescription = null
+                        )
+
+                    }
+                }
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Change language",
+                        modifier = Modifier.weight(1f),
+                        color = Color.White
+                    )
+                    IconButton(onClick = changeLanguage) {
                         Icon(
                             imageVector = Icons.Rounded.ArrowForward,
                             contentDescription = null

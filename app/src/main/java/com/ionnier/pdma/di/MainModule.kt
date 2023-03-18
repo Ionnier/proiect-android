@@ -8,11 +8,13 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.json.Json
 import timber.log.Timber
 import javax.inject.Singleton
 
@@ -37,7 +39,13 @@ object MainModule {
             level = LogLevel.INFO
         }
         install(ContentNegotiation) {
-            json()
+            json(Json {
+                isLenient = true
+                ignoreUnknownKeys = true
+            })
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 40000
         }
     }
 }

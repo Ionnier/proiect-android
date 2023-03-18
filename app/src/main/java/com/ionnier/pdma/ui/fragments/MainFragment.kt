@@ -82,7 +82,12 @@ class MainFragment : Fragment() {
                         if (drawerState.isOpen) {
                             closeDrawer()
                         } else {
-                            activity?.finishAndRemoveTask()
+                            if (currentSelectedRoute.value != HOME_ROUTE) {
+                                currentSelectedRoute.value = HOME_ROUTE
+                            } else {
+                                activity?.finishAndRemoveTask()
+
+                            }
                         }
                     }
                     val dialogValue = mainViewModel.showDialog.collectAsState().value
@@ -196,6 +201,11 @@ class MainFragment : Fragment() {
                                         setCalories = {
                                             mainViewModel.showDialog.update {
                                                 2
+                                            }
+                                        },
+                                        changeLanguage = {
+                                            if (findNavController().currentDestination?.label == "MainFragment") {
+                                                findNavController().navigate(MainFragmentDirections.actionMainFragmentToIntroFragment())
                                             }
                                         }
                                     )
