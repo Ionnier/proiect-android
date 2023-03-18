@@ -20,6 +20,7 @@ fun DrawSettingsScreen(
     modifier: Modifier = Modifier,
     recreate: () -> Unit,
     scheduleReminder: () -> Unit,
+    setCalories: () -> Unit
 ) {
     MyApplicationTheme {
         Surface {
@@ -27,6 +28,21 @@ fun DrawSettingsScreen(
                 modifier = modifier.padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Set calories",
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = setCalories) {
+                        Icon(
+                            imageVector = Icons.Rounded.ArrowForward,
+                            contentDescription = null
+                        )
+
+                    }
+                }
                 Row (
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

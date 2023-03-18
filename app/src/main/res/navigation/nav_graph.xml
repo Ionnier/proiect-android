@@ -28,5 +28,20 @@
     <fragment
         android:id="@+id/mainFragment"
         android:name="com.ionnier.pdma.ui.fragments.MainFragment"
-        android:label="MainFragment" />
+        android:label="MainFragment" >
+        <action
+            android:id="@+id/action_mainFragment_to_addFragment"
+            app:destination="@id/addFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addFragment"
+        android:name="com.ionnier.pdma.ui.fragments.AddFragment"
+        android:label="AddFragment" />
+
+    <action
+        android:id="@+id/openMain"
+        app:launchSingleTop="true"
+        app:destination="@id/mainFragment"
+    />
 </navigation>

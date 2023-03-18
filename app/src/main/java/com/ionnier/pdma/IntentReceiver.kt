@@ -1,12 +1,12 @@
 package com.ionnier.pdma
 
-import android.R
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import androidx.navigation.NavDeepLinkBuilder
 import timber.log.Timber
 
 
@@ -19,20 +19,17 @@ class IntentReceiver : BroadcastReceiver() {
                 val manager =
                     context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_input_add)
-                    .setContentTitle("my title")
-                    .setContentText("my message")
+                    .setSmallIcon(android.R.drawable.ic_input_add)
+                    .setContentTitle("PDMA")
+                    .setContentText("Reminder to track")
                     .setOngoing(false)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setAutoCancel(true)
 
-                val i = Intent(context, MainActivity::class.java)
-                val pendingIntent = PendingIntent.getActivity(
-                    context,
-                    0,
-                    i,
-                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-                )
+                val pendingIntent = NavDeepLinkBuilder(context)
+                    .setGraph(R.navigation.nav_graph)
+                    .setDestination(R.id.addFragment)
+                    .createPendingIntent()
                 builder.setContentIntent(pendingIntent)
                 manager.notify(12345, builder.build())
             }

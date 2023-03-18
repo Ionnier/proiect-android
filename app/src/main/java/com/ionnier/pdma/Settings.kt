@@ -19,6 +19,7 @@ object Settings {
     private lateinit var sharedPreferences: SharedPreferences
     private const val LANGUAGE_SP = "language_sp"
     private const val RANDOM_COLORS = "random_colors_sp"
+    private const val GOAL_CALORIES = "calories_sp"
 
     fun init(context: Context) {
         sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -28,6 +29,12 @@ object Settings {
         get() = sharedPreferences.getBoolean(RANDOM_COLORS, false)
         set(value) {
             sharedPreferences.edit().putBoolean(RANDOM_COLORS, value).apply()
+        }
+
+    var goal_calories: Int
+        get() = sharedPreferences.getInt(GOAL_CALORIES, 0)
+        set(value) {
+            sharedPreferences.edit().putInt(GOAL_CALORIES, value).apply()
         }
 
     fun setPreferedLanguage(language: Languages){
