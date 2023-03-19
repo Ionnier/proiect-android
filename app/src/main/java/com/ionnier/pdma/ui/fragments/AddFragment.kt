@@ -29,9 +29,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.modifier.modifierLocalConsumer
@@ -47,10 +49,13 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.findNavController
 import com.ionnier.pdma.R
 import com.ionnier.pdma.Settings
+import com.ionnier.pdma.data.AppDatabase
+import com.ionnier.pdma.data.IngredientEntry
 import com.ionnier.pdma.ui.colors.MyApplicationTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.internal.managers.ViewComponentManager
@@ -90,7 +95,7 @@ class AddFragment: Fragment() {
                 setContent {
                     val goBack = {
                         if (findNavController().currentDestination?.label == "AddFragment") {
-                            findNavController().navigate(com.ionnier.pdma.R.id.openMain)
+                            findNavController().navigate(R.id.openMain)
                         }
                     }
                     BackHandler(onBack = goBack)
@@ -198,8 +203,11 @@ class AddFragment: Fragment() {
                                                         override fun
                                                                 onImageSaved(output: ImageCapture.OutputFileResults){
                                                             val msg = "Photo capture succeeded: ${output.savedUri}"
-                                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                                             Timber.w(msg)
+                                                            lifecycleScope.launch {
+                                                                addViewModel.addIngredient(selectedIngredient!!, output.savedUri.toString())
+                                                                goBack()
+                                                            }
                                                         }
                                                     }
                                                 )
@@ -209,18 +217,29 @@ class AddFragment: Fragment() {
                                                 imageVector = Icons.Default.Add,
                                                 contentDescription = null,
                                             )
+                                        }
 
+                                        IconButton(
+                                            onClick = {
+                                                lifecycleScope.launch {
+                                                    addViewModel.addIngredient(selectedIngredient!!, null)
+                                                    goBack()
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowForward,
+                                                contentDescription = null,
+                                            )
                                         }
                                     }
                                 }
-
                                 return@Scaffold
-
                             }
                             Column (
                                 modifier = Modifier.padding(it)
                             ) {
-                                var searchValue by remember {
+                                var searchValue by rememberSaveable {
                                     mutableStateOf("")
                                 }
                                 TextField(
@@ -239,35 +258,8 @@ class AddFragment: Fragment() {
                                     items(
                                         if (searchValue.isBlank()) emptyList() else state.ingredients.filter { it.name?.indexOf(searchValue) != -1 },
                                     ) {
-                                        ListItem(
-                                            headlineText = {
-                                                Text(it.name ?: "Name")
-                                            },
-                                            supportingText = {
-                                                Column(
-                                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                                ) {
-                                                    Text(
-                                                        "energy: ${it.energy}"
-                                                    )
-                                                    Row(
-                                                        modifier = Modifier.horizontalScroll(
-                                                            rememberScrollState()),
-                                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                    ) {
-                                                        Text(
-                                                            "protein: ${it.protein}"
-                                                        )
-                                                        Text(
-                                                            "fat: ${it.fat}"
-                                                        )
-                                                        Text(
-                                                            "carbs: ${it.carbohydrates}"
-                                                        )
-                                                    }
-                                                }
-
-                                            },
+                                        IngredientListItem(
+                                            it = it,
                                             trailingContent = {
                                                 OutlinedButton(onClick = {
                                                     for (permission in REQUIRED_PERMISSIONS) {
@@ -278,17 +270,21 @@ class AddFragment: Fragment() {
                                                             ) == PackageManager.PERMISSION_GRANTED -> {
                                                                 continue
                                                             }
-                                                        else -> {
-                                                            ActivityCompat.requestPermissions(
-                                                                activity as Activity,
-                                                                REQUIRED_PERMISSIONS,
-                                                                2
-                                                            )
-                                                        }
+                                                            else -> {
+                                                                ActivityCompat.requestPermissions(
+                                                                    activity as Activity,
+                                                                    REQUIRED_PERMISSIONS,
+                                                                    2
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                     if (!allPermissionsGranted(context)) {
-                                                        Toast.makeText(context, "Permissions not granted", Toast.LENGTH_SHORT)
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Permissions not granted",
+                                                            Toast.LENGTH_SHORT
+                                                        )
                                                             .show()
                                                         return@OutlinedButton
                                                     }
@@ -298,10 +294,7 @@ class AddFragment: Fragment() {
                                                 }
                                             }
                                         )
-
-
                                     }
-
                                 }
                             }
                         }
@@ -404,7 +397,8 @@ class AddFragment: Fragment() {
 
 @HiltViewModel
 class AddViewModel @Inject constructor(
-    private val client: HttpClient
+    private val client: HttpClient,
+    private val appDatabase: AppDatabase
 ): ViewModel() {
     val state = MutableStateFlow(AddViewModelState())
 
@@ -436,6 +430,12 @@ class AddViewModel @Inject constructor(
         }
     }
 
+    suspend fun addIngredient(ingredient: Ingredient, photo: String? = null) {
+        appDatabase.ingredientDao().insert(IngredientEntry(System.currentTimeMillis(), photo, ingredient))
+    }
+
+    fun getAll() =
+        appDatabase.ingredientDao().getAll()
 }
 
 data class AddViewModelState(
@@ -463,3 +463,46 @@ data class Ingredient (
     @SerialName("sodium") var sodium: String? = null,
 
 )
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun IngredientListItem(
+    it: Ingredient,
+    trailingContent: @Composable () -> Unit,
+    supportingText: (@Composable ColumnScope.() -> Unit)? = null
+) {
+    ListItem(
+        headlineText = {
+            it.name?.let{
+                Text(it)
+            }
+        },
+        supportingText = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    "energy: ${it.energy}"
+                )
+                Row(
+                    modifier = Modifier.horizontalScroll(
+                        rememberScrollState()
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        "protein: ${it.protein}"
+                    )
+                    Text(
+                        "fat: ${it.fat}"
+                    )
+                    Text(
+                        "carbs: ${it.carbohydrates}"
+                    )
+                }
+                supportingText?.invoke(this@Column)
+            }
+        },
+        trailingContent = trailingContent,
+    )
+}

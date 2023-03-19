@@ -10,13 +10,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.List
@@ -32,15 +32,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -50,18 +57,30 @@ import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
 import com.ionnier.pdma.IntentReceiver
 import com.ionnier.pdma.Settings
+import com.ionnier.pdma.data.AppDatabase
 import com.ionnier.pdma.ui.colors.MyApplicationTheme
 import com.ionnier.pdma.ui.screens.DrawSettingsScreen
+import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.internal.managers.ViewComponentManager
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.ktor.client.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.joda.time.DateTime
+import timber.log.Timber
+import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
 
 private const val HOME_ROUTE = "Home"
 private const val LOG_ROUTE = "History"
 private const val SETTINGS_ROUTE = "Settings"
 
+@AndroidEntryPoint
 class MainFragment : Fragment() {
     private val mainViewModel: MainViewModel by viewModels()
 
@@ -69,7 +88,11 @@ class MainFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-        return ComposeView(requireContext()).apply {
+        val context = if (context is ViewComponentManager.FragmentContextWrapper)
+            (context as ViewComponentManager.FragmentContextWrapper).baseContext
+        else
+            context
+        return ComposeView(context!!).apply {
             setContent {
                 MyApplicationTheme {
                     val currentSelectedRoute = rememberSaveable {
@@ -221,7 +244,6 @@ class MainFragment : Fragment() {
                                                         if (findNavController().currentDestination?.label == "MainFragment") {
                                                             findNavController().navigate(MainFragmentDirections.actionMainFragmentToAddFragment())
                                                         }
-
                                                     }
                                                 ) {
                                                     Icon(
@@ -231,20 +253,105 @@ class MainFragment : Fragment() {
                                                 }
                                             }
                                         ) {
+                                            val items = mainViewModel.getTodayAll().collectAsState(
+                                                initial = emptyList()
+                                            ).value
+                                            val all = items.map { it.ingredient }
+                                            val totalIngredient = Ingredient(
+                                                name = null,
+                                                energy = all.sumOf { it.energy ?: 0 },
+                                                protein = all.sumOf {
+                                                    try {
+                                                        Integer.parseInt(it.protein!!.split(".")[0])
+                                                    } catch(e: Exception) {
+                                                        0
+                                                    }
+                                                }.toString(),
+                                                carbohydrates = all.sumOf {
+                                                    try {
+                                                        Integer.parseInt(it.carbohydrates!!.split(".")[0])
+                                                    } catch(e: Exception) {
+                                                        0
+                                                    }
+                                                }.toString(),
+                                                fat = all.sumOf {
+                                                    try {
+                                                        Integer.parseInt(it.fat!!.split(".")[0])
+                                                    } catch(e: Exception) {
+                                                        0
+                                                    }
+                                                }.toString(),
+                                            )
                                             Column(
-                                                modifier = Modifier.padding(it)
+                                                modifier = Modifier.padding(it),
+                                                verticalArrangement = Arrangement.Center,
+                                                horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
+                                                if (Settings.goal_calories != 0) {
+                                                    CaloriesCircle(
+                                                        caloriesConsumed = totalIngredient.energy ?: 0,
+                                                        goalCalories = Settings.goal_calories
+                                                    )
+                                                }
+                                                IngredientListItem(it = totalIngredient, trailingContent = {})
+                                                Spacer(Modifier.weight(1f))
+
 
                                             }
                                             
                                         }
                                     }
                                     LOG_ROUTE -> {
-                                        Column {
-                                            Image(
-                                                painter = rememberAsyncImagePainter("content://media/external/images/media/22"),
-                                                contentDescription = null,
-                                            )
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier
+                                                .padding(horizontal = 8.dp)
+                                                .verticalScroll(
+                                                    rememberScrollState()
+                                                )
+                                        ) {
+                                            val items = mainViewModel.getAll().collectAsState(initial = emptyList()).value
+                                            for (item in items) {
+                                                IngredientListItem(
+                                                    it = item.ingredient,
+                                                    supportingText = {
+                                                        Text(
+                                                            SimpleDateFormat("E, dd LLLL yyyy", Locale.getDefault()).format(item.addedAt)
+                                                        )
+                                                    },
+                                                    trailingContent = {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            item.photo?.let {
+                                                                Image(
+                                                                    painter = rememberAsyncImagePainter(item.photo),
+                                                                    contentDescription = null,
+                                                                    modifier = Modifier.size(128.dp)
+                                                                )
+                                                            }
+                                                            IconButton(
+                                                                onClick = {
+                                                                    val sendIntent: Intent = Intent().apply {
+                                                                        action = Intent.ACTION_SEND
+                                                                        putExtra(Intent.EXTRA_TEXT, "Hey!\n I ate on ${SimpleDateFormat("E, dd LLLL yyyy", Locale.getDefault()).format(item.addedAt)} some ${item.ingredient.name} it had ${item.ingredient.energy} calories.")
+                                                                        type = "text/plain"
+                                                                    }
+
+                                                                    val shareIntent = Intent.createChooser(sendIntent, null)
+                                                                    startActivity(shareIntent)
+
+                                                                }
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Share,
+                                                                    contentDescription = null,
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                            }
 
                                         }
                                     }
@@ -464,6 +571,72 @@ class MainFragment : Fragment() {
     }
 }
 
-class MainViewModel: ViewModel() {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val appDatabase: AppDatabase
+): ViewModel() {
     val showDialog =  MutableStateFlow(0)
+
+    fun getAll() = appDatabase.ingredientDao().getAll()
+
+    fun getTodayAll() = getAll().map { it.filter { DateTime(it.addedAt).dayOfYear == DateTime.now().dayOfYear} }
+}
+
+@Composable
+fun CaloriesCircle(
+    caloriesConsumed: Int,
+    goalCalories: Int,
+) {
+    Box (
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .width(200.dp)
+            .height(200.dp)
+    ) {
+        val startAngle = 180f
+        val maxSweep = 180f
+        val total = maxSweep * caloriesConsumed
+        var calculatedSweep = total / goalCalories
+        var color = Color.White
+
+        if (calculatedSweep > maxSweep) {
+            calculatedSweep = maxSweep
+            color = Color.Red
+        }
+        Canvas(
+            Modifier
+                .width(200.dp)
+                .height(200.dp)
+                .padding(3.dp)
+                .align(Alignment.Center)
+        ) {
+            drawArc(
+                color = color.copy(0.3f),
+                startAngle = startAngle,
+                sweepAngle = maxSweep,
+                useCenter = false,
+                style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
+            )
+            drawArc(
+                color = color,
+                startAngle = startAngle,
+                sweepAngle = calculatedSweep,
+                useCenter = false,
+                style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
+            )
+        }
+
+        Column {
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = caloriesConsumed.toString(),
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(
+                    textAlign = TextAlign.Center,
+                    color = color
+                ),
+            )
+            Spacer(Modifier.weight(1f))
+        }
+    }
 }

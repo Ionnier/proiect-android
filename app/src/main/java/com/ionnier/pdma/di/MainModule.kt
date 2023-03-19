@@ -2,6 +2,7 @@ package com.ionnier.pdma.di
 
 import android.content.Context
 import com.ionnier.pdma.MainApplication
+import com.ionnier.pdma.data.AppDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -47,5 +48,13 @@ object MainModule {
         install(HttpTimeout) {
             requestTimeoutMillis = 40000
         }
+    }
+
+    @Provides
+    @Singleton
+    fun provideAppDatabase(
+        context: Context
+    ): AppDatabase {
+        return AppDatabase.getDatabase(context)
     }
 }
