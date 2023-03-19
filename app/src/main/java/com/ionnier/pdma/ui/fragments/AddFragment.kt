@@ -468,10 +468,12 @@ data class Ingredient (
 @OptIn(ExperimentalMaterial3Api::class)
 fun IngredientListItem(
     it: Ingredient,
+    modifier: Modifier = Modifier,
     trailingContent: @Composable () -> Unit,
-    supportingText: (@Composable ColumnScope.() -> Unit)? = null
+    supportingText: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     ListItem(
+        modifier = modifier,
         headlineText = {
             it.name?.let{
                 Text(it)

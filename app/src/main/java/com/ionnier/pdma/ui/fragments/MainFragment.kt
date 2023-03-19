@@ -284,24 +284,30 @@ class MainFragment : Fragment() {
                                                     }
                                                 }.toString(),
                                             )
-                                            Column(
-                                                modifier = Modifier.padding(it),
-                                                verticalArrangement = Arrangement.Center,
-                                                horizontalAlignment = Alignment.CenterHorizontally
-                                            ) {
-                                                if (Settings.goal_calories != 0) {
-                                                    CaloriesCircle(
-                                                        caloriesConsumed = animateIntAsState(
-                                                            targetValue = totalIngredient.energy ?: 0,
-                                                            animationSpec = tween(2000)
-                                                        ).value,
-                                                        goalCalories = Settings.goal_calories
+                                            Surface {
+                                                Column(
+                                                    modifier = Modifier.padding(it),
+                                                    verticalArrangement = Arrangement.Center,
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    if (Settings.goal_calories != 0) {
+                                                        CaloriesCircle(
+                                                            caloriesConsumed = animateIntAsState(
+                                                                targetValue = totalIngredient.energy
+                                                                    ?: 0,
+                                                                animationSpec = tween(2000)
+                                                            ).value,
+                                                            goalCalories = Settings.goal_calories
+                                                        )
+                                                    }
+                                                    IngredientListItem(
+                                                        it = totalIngredient,
+                                                        trailingContent = {},
+                                                        modifier = Modifier.padding(horizontal = 8.dp)
                                                     )
+                                                    Spacer(modifier = Modifier.weight(1f))
                                                 }
-                                                IngredientListItem(it = totalIngredient, trailingContent = {})
-                                                Spacer(Modifier.weight(1f))
-
-
                                             }
                                             
                                         }
