@@ -10,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -32,6 +33,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -44,6 +46,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.navigation.findNavController
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
 import com.ionnier.pdma.IntentReceiver
 import com.ionnier.pdma.Settings
 import com.ionnier.pdma.ui.colors.MyApplicationTheme
@@ -233,6 +237,15 @@ class MainFragment : Fragment() {
 
                                             }
                                             
+                                        }
+                                    }
+                                    LOG_ROUTE -> {
+                                        Column {
+                                            Image(
+                                                painter = rememberAsyncImagePainter("content://media/external/images/media/22"),
+                                                contentDescription = null,
+                                            )
+
                                         }
                                     }
                                     else -> {
