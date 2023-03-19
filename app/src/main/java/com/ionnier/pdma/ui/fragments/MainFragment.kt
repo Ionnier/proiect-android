@@ -10,6 +10,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -289,7 +291,10 @@ class MainFragment : Fragment() {
                                             ) {
                                                 if (Settings.goal_calories != 0) {
                                                     CaloriesCircle(
-                                                        caloriesConsumed = totalIngredient.energy ?: 0,
+                                                        caloriesConsumed = animateIntAsState(
+                                                            targetValue = totalIngredient.energy ?: 0,
+                                                            animationSpec = tween(2000)
+                                                        ).value,
                                                         goalCalories = Settings.goal_calories
                                                     )
                                                 }
