@@ -27,6 +27,9 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -36,28 +39,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.navigation.findNavController
 import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
+import com.google.firebase.auth.FirebaseAuth
 import com.ionnier.pdma.IntentReceiver
+import com.ionnier.pdma.R
 import com.ionnier.pdma.Settings
 import com.ionnier.pdma.data.AppDatabase
 import com.ionnier.pdma.ui.colors.MyApplicationTheme
@@ -67,12 +67,10 @@ import dagger.hilt.android.internal.managers.ViewComponentManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.ktor.client.*
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime
-import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -86,7 +84,7 @@ private const val SETTINGS_ROUTE = "Settings"
 class MainFragment : Fragment() {
     private val mainViewModel: MainViewModel by viewModels()
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -101,7 +99,13 @@ class MainFragment : Fragment() {
                         mutableStateOf(HOME_ROUTE)
                     }
                     val scope = rememberCoroutineScope()
+                    val windowSize = activity?.let { calculateWindowSizeClass(it) }
                     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+                    val drawerItems = listOf(
+                        Pair(HOME_ROUTE, Icons.Outlined.Home),
+                        Pair(LOG_ROUTE, Icons.Outlined.List),
+                        Pair(SETTINGS_ROUTE, Icons.Outlined.Settings)
+                    )
                     fun closeDrawer() {
                         scope.launch {
                             drawerState.close()
@@ -136,247 +140,318 @@ class MainFragment : Fragment() {
                                     1 -> ReminderDialog(dismiss)
                                     2 -> CaloriesDialog(dismiss = dismiss)
                                 }
-
-
                             }
                         }
                     }
-                    ModalNavigationDrawer(
-                        drawerContent = {
-                            Column(
-                                modifier = Modifier.alpha(
-                                    if (drawerState.isOpen || drawerState.isAnimationRunning || drawerState.offset.value != 0f) 1.0f else 0.0f
-                                )
-                            ) {
-                                val drawerItems = listOf(
-                                    Pair(HOME_ROUTE, Icons.Outlined.Home),
-                                    Pair(LOG_ROUTE, Icons.Outlined.List),
-                                    Pair(SETTINGS_ROUTE, Icons.Outlined.Settings)
-                                )
+                    if (windowSize?.widthSizeClass == WindowWidthSizeClass.Compact) {
+                        ModalNavigationDrawer(
+                            drawerContent = {
+                                Column(
+                                    modifier = Modifier.alpha(
+                                        if (drawerState.isOpen || drawerState.isAnimationRunning || drawerState.offset.value != 0f) 1.0f else 0.0f
+                                    )
+                                ) {
+                                    TopAppBar(
+                                        title = {},
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .alpha(0.0f)
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                closeDrawer()
+                                            },
+                                    )
+                                    for (item in drawerItems) {
+                                        NavigationDrawerItem(
+                                            label = {
+                                                DrawerItem(item)
+                                            },
+                                            selected = currentSelectedRoute.value == item.first,
+                                            onClick = {
+                                                currentSelectedRoute.value = item.first
+                                                closeDrawer()
+                                            },
+                                            shape = RectangleShape
+                                        )
 
-                                TopAppBar(
-                                    title = {},
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .alpha(0.0f)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            closeDrawer()
+                                    }
+                                }
+                            },
+                            drawerState = drawerState,
+                        ) {
+                            Surface(
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Column {
+                                    TopAppBar(
+                                        title = {
+                                            Text(currentSelectedRoute.value)
                                         },
-                                )
-                                for (item in drawerItems) {
-                                    NavigationDrawerItem(
-                                        label = {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically
+                                        actions = {
+                                            IconButton(
+                                                onClick = {
+                                                    scope.launch {
+                                                        drawerState.open()
+                                                    }
+                                                }
                                             ) {
                                                 Icon(
-                                                    imageVector = item.second,
+                                                    imageVector = Icons.Rounded.Menu,
+                                                    tint = Color.White,
                                                     contentDescription = null,
                                                 )
-                                                Spacer(modifier = Modifier.width(16.dp))
-                                                Text(item.first)
                                             }
-                                        },
-                                        selected = currentSelectedRoute.value == item.first,
-                                        onClick = {
-                                            currentSelectedRoute.value = item.first
-                                            closeDrawer()
-                                        },
-                                        shape = RectangleShape
+                                        }
                                     )
-
+                                    MainContent(currentSelectedRoute)
                                 }
+
                             }
-                        },
-                        drawerState = drawerState,
-                    ) {
-                        Surface(
-                            modifier = Modifier.fillMaxSize()
+
+                        }
+                    }
+                    else {
+                        Row(
+
                         ) {
-                            Column {
-                                TopAppBar(
-                                    title = {
-                                        Text(currentSelectedRoute.value)
-                                    },
-                                    actions = {
-                                        IconButton(
-                                            onClick = {
-                                                scope.launch {
-                                                    drawerState.open()
-                                                }
-                                            }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Menu,
-                                                tint = Color.White,
-                                                contentDescription = null,
-                                            )
-                                        }
-                                    }
-                                )
-                                when (currentSelectedRoute.value) {
-                                    SETTINGS_ROUTE -> DrawSettingsScreen(
-                                        recreate = {
-                                            activity?.recreate()
-                                        },
-                                        scheduleReminder = {
-                                            mainViewModel.showDialog.update {
-                                                1
-                                            }
-                                        },
-                                        setCalories = {
-                                            mainViewModel.showDialog.update {
-                                                2
-                                            }
-                                        },
-                                        changeLanguage = {
-                                            if (findNavController().currentDestination?.label == "MainFragment") {
-                                                findNavController().navigate(MainFragmentDirections.actionMainFragmentToIntroFragment())
-                                            }
-                                        }
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                for (item in drawerItems) {
+                                    DrawerItem(
+                                        item = item,
+                                        modifier = Modifier.clickable {
+                                            currentSelectedRoute.value = item.first
+                                        }.then (if (currentSelectedRoute.value == item.first) {
+                                            Modifier.background(Color.Gray)
+                                        } else {
+                                            Modifier
+                                        }.fillMaxWidth()
+                                        )
                                     )
-                                    HOME_ROUTE -> {
-                                        Scaffold(
-                                            floatingActionButton = {
-                                                FloatingActionButton(
-                                                    onClick = {
-                                                        if (findNavController().currentDestination?.label == "MainFragment") {
-                                                            findNavController().navigate(MainFragmentDirections.actionMainFragmentToAddFragment())
-                                                        }
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.Add,
-                                                        contentDescription = null
-                                                    )
-                                                }
-                                            }
-                                        ) {
-                                            val items = mainViewModel.getTodayAll().collectAsState(
-                                                initial = emptyList()
-                                            ).value
-                                            val all = items.map { it.ingredient }
-                                            val totalIngredient = Ingredient(
-                                                name = null,
-                                                energy = all.sumOf { it.energy ?: 0 },
-                                                protein = all.sumOf {
-                                                    try {
-                                                        Integer.parseInt(it.protein!!.split(".")[0])
-                                                    } catch(e: Exception) {
-                                                        0
-                                                    }
-                                                }.toString(),
-                                                carbohydrates = all.sumOf {
-                                                    try {
-                                                        Integer.parseInt(it.carbohydrates!!.split(".")[0])
-                                                    } catch(e: Exception) {
-                                                        0
-                                                    }
-                                                }.toString(),
-                                                fat = all.sumOf {
-                                                    try {
-                                                        Integer.parseInt(it.fat!!.split(".")[0])
-                                                    } catch(e: Exception) {
-                                                        0
-                                                    }
-                                                }.toString(),
-                                            )
-                                            Surface {
-                                                Column(
-                                                    modifier = Modifier.padding(it),
-                                                    verticalArrangement = Arrangement.Center,
-                                                    horizontalAlignment = Alignment.CenterHorizontally
-                                                ) {
-                                                    Spacer(modifier = Modifier.height(8.dp))
-                                                    if (Settings.goal_calories != 0) {
-                                                        CaloriesCircle(
-                                                            caloriesConsumed = animateIntAsState(
-                                                                targetValue = totalIngredient.energy
-                                                                    ?: 0,
-                                                                animationSpec = tween(2000)
-                                                            ).value,
-                                                            goalCalories = Settings.goal_calories
-                                                        )
-                                                    }
-                                                    IngredientListItem(
-                                                        it = totalIngredient,
-                                                        trailingContent = {},
-                                                        modifier = Modifier.padding(horizontal = 8.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.weight(1f))
-                                                }
-                                            }
-                                            
-                                        }
-                                    }
-                                    LOG_ROUTE -> {
-                                        Column(
-                                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                                            modifier = Modifier
-                                                .padding(horizontal = 8.dp)
-                                                .verticalScroll(
-                                                    rememberScrollState()
-                                                )
-                                        ) {
-                                            val items = mainViewModel.getAll().collectAsState(initial = emptyList()).value
-                                            for (item in items) {
-                                                IngredientListItem(
-                                                    it = item.ingredient,
-                                                    supportingText = {
-                                                        Text(
-                                                            SimpleDateFormat("E, dd LLLL yyyy", Locale.getDefault()).format(item.addedAt)
-                                                        )
-                                                    },
-                                                    trailingContent = {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically
-                                                        ) {
-                                                            item.photo?.let {
-                                                                Image(
-                                                                    painter = rememberAsyncImagePainter(item.photo),
-                                                                    contentDescription = null,
-                                                                    modifier = Modifier.size(128.dp)
-                                                                )
-                                                            }
-                                                            IconButton(
-                                                                onClick = {
-                                                                    val sendIntent: Intent = Intent().apply {
-                                                                        action = Intent.ACTION_SEND
-                                                                        putExtra(Intent.EXTRA_TEXT, "Hey!\n I ate on ${SimpleDateFormat("E, dd LLLL yyyy", Locale.getDefault()).format(item.addedAt)} some ${item.ingredient.name} it had ${item.ingredient.energy} calories.")
-                                                                        type = "text/plain"
-                                                                    }
-
-                                                                    val shareIntent = Intent.createChooser(sendIntent, null)
-                                                                    startActivity(shareIntent)
-
-                                                                }
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Share,
-                                                                    contentDescription = null,
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                                )
-                                            }
-
-                                        }
-                                    }
-                                    else -> {
-
-                                    }
                                 }
                             }
-
+                            Column(
+                                modifier = Modifier.weight(3f)
+                            ) {
+                                MainContent(currentSelectedRoute)
+                            }
                         }
 
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    @OptIn(ExperimentalMaterial3Api::class)
+    private fun ComposeView.MainContent(currentSelectedRoute: MutableState<String>) {
+        when (currentSelectedRoute.value) {
+            SETTINGS_ROUTE -> DrawSettingsScreen(
+                recreate = {
+                    activity?.recreate()
+                },
+                scheduleReminder = {
+                    mainViewModel.showDialog.update {
+                        1
+                    }
+                },
+                setCalories = {
+                    mainViewModel.showDialog.update {
+                        2
+                    }
+                },
+                changeLanguage = {
+                    if (findNavController().currentDestination?.label == "MainFragment") {
+                        findNavController().navigate(
+                            MainFragmentDirections.actionMainFragmentToIntroFragment()
+                        )
+                    }
+                },
+                onLogout = {
+                    FirebaseAuth.getInstance().signOut()
+                    findNavController().popBackStack(R.id.introFragment, false)
+                }
+            )
+            HOME_ROUTE -> {
+                Scaffold(
+                    floatingActionButton = {
+                        FloatingActionButton(
+                            onClick = {
+                                if (findNavController().currentDestination?.label == "MainFragment") {
+                                    findNavController().navigate(
+                                        MainFragmentDirections.actionMainFragmentToAddFragment()
+                                    )
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Add,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                ) {
+                    val items =
+                        mainViewModel.getTodayAll().collectAsState(
+                            initial = emptyList()
+                        ).value
+                    val all = items.map { it.ingredient }
+                    val totalIngredient = Ingredient(
+                        name = null,
+                        energy = all.sumOf { it.energy ?: 0 },
+                        protein = all.sumOf {
+                            try {
+                                Integer.parseInt(it.protein!!.split(".")[0])
+                            } catch (e: Exception) {
+                                0
+                            }
+                        }.toString(),
+                        carbohydrates = all.sumOf {
+                            try {
+                                Integer.parseInt(
+                                    it.carbohydrates!!.split(
+                                        "."
+                                    )[0]
+                                )
+                            } catch (e: Exception) {
+                                0
+                            }
+                        }.toString(),
+                        fat = all.sumOf {
+                            try {
+                                Integer.parseInt(it.fat!!.split(".")[0])
+                            } catch (e: Exception) {
+                                0
+                            }
+                        }.toString(),
+                    )
+                    Surface {
+                        Column(
+                            modifier = Modifier.padding(it),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (Settings.goal_calories != 0) {
+                                CaloriesCircle(
+                                    caloriesConsumed = animateIntAsState(
+                                        targetValue = totalIngredient.energy
+                                            ?: 0,
+                                        animationSpec = tween(2000)
+                                    ).value,
+                                    goalCalories = Settings.goal_calories
+                                )
+                            }
+                            IngredientListItem(
+                                it = totalIngredient,
+                                trailingContent = {},
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+
+                }
+            }
+            LOG_ROUTE -> {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .verticalScroll(
+                            rememberScrollState()
+                        )
+                ) {
+                    val items = mainViewModel.getAll()
+                        .collectAsState(initial = emptyList()).value
+                    for (item in items) {
+                        IngredientListItem(
+                            it = item.ingredient,
+                            supportingText = {
+                                Text(
+                                    SimpleDateFormat(
+                                        "E, dd LLLL yyyy",
+                                        Locale.getDefault()
+                                    ).format(item.addedAt)
+                                )
+                            },
+                            trailingContent = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    item.photo?.let {
+                                        Image(
+                                            painter = rememberAsyncImagePainter(
+                                                item.photo
+                                            ),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(128.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            val sendIntent: Intent =
+                                                Intent().apply {
+                                                    action =
+                                                        Intent.ACTION_SEND
+                                                    putExtra(
+                                                        Intent.EXTRA_TEXT,
+                                                        "Hey!\n I ate on ${
+                                                            SimpleDateFormat(
+                                                                "E, dd LLLL yyyy",
+                                                                Locale.getDefault()
+                                                            ).format(
+                                                                item.addedAt
+                                                            )
+                                                        } some ${item.ingredient.name} it had ${item.ingredient.energy} calories."
+                                                    )
+                                                    type = "text/plain"
+                                                }
+
+                                            val shareIntent =
+                                                Intent.createChooser(
+                                                    sendIntent,
+                                                    null
+                                                )
+                                            startActivity(shareIntent)
+
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Share,
+                                            contentDescription = null,
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                }
+            }
+            else -> {
+
+            }
+        }
+    }
+
+    @Composable
+    private fun DrawerItem(item: Pair<String, ImageVector>, modifier: Modifier = Modifier) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier
+        ) {
+            Icon(
+                imageVector = item.second,
+                contentDescription = null,
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(item.first)
         }
     }
 

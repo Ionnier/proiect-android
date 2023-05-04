@@ -22,6 +22,7 @@ class LoginFragment : Fragment() {
         super.onCreate(savedInstanceState)
         auth = Firebase.auth
         val currentUser = auth.currentUser
+        Timber.w("$currentUser DD")
         if (currentUser != null) {
             openMainFragment()
             return
@@ -38,15 +39,13 @@ class LoginFragment : Fragment() {
                 // sign-in flow using the back button. Otherwise check
                 // response.getError().getErrorCode() and handle the error.
                 // ...
-                Timber.w("${result.idpResponse?.error}")
+                Timber.w("${result.idpResponse?.error}  ERROR")
             }
 
         }
 
         // Choose authentication providers
         val providers = arrayListOf (
-            AuthUI.IdpConfig.AnonymousBuilder().build(),
-            AuthUI.IdpConfig.EmailBuilder().build(),
             AuthUI.IdpConfig.GoogleBuilder().build(),
         )
 

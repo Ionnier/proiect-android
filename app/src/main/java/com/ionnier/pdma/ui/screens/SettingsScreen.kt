@@ -3,6 +3,8 @@ package com.ionnier.pdma.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +24,7 @@ fun DrawSettingsScreen(
     scheduleReminder: () -> Unit,
     setCalories: () -> Unit,
     changeLanguage: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     MyApplicationTheme {
         Surface {
@@ -93,10 +96,23 @@ fun DrawSettingsScreen(
                             imageVector = Icons.Rounded.ArrowForward,
                             contentDescription = null
                         )
-
                     }
                 }
-
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Logout",
+                        modifier = Modifier.weight(1f),
+                        color = Color.White
+                    )
+                    IconButton(onClick = onLogout) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = null
+                        )
+                    }
+                }
             }
         }
     }
